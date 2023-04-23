@@ -1,0 +1,51 @@
+use actix_files::Files;
+use actix_web::{post, services, web, web::Redirect, App, HttpServer, Responder};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Serialize, Deserialize)]
+enum Day {
+    Monday,
+    Tuesday,
+    Wednsday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Time {
+    day: Day,
+    half_hours: i32,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Span {
+    start: Time,
+    end: Time,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Schedule {
+    span: Span,
+    available: HashMap<String, Vec<Span>>,
+}
+
+#[post("/schedule")]
+async fn schedule() -> impl Responder {
+    Redirect::to("/").see_other()
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new().service(services![
+            schedule,
+            Files::new("/", "./static").index_file("index.html"),
+        ])
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
