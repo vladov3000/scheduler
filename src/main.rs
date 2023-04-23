@@ -34,7 +34,7 @@ struct Schedule {
 }
 
 #[post("/api/schedule")]
-async fn schedule(database: Data<Arc<Mutex<Connection>>>) -> impl Responder {
+async fn schedule(database: Data<Arc<Mutex<Database>>>) -> impl Responder {
     let database = database.lock();
 
     
@@ -42,16 +42,28 @@ async fn schedule(database: Data<Arc<Mutex<Connection>>>) -> impl Responder {
     Redirect::to("/").see_other()
 }
 
+#[derive(Send)]
 struct Database {
-    database: Connection,
-    : Statement,
+    connection: Connection,
+    insert_schedule_statement: Statement,
+}
+
+impl Database {
+    fn new() -> Self {
+	let connection = Connection::open("database/scheduler.db").unwrap();
+	let insert_schedule_statement = connection.prepare("SELECT id FROM schedule").unwrap();
+
+	Database {
+	    connection
+	}
+    }
 }
 
 #[actix_web::main]
 async fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("warn"));
 
-    let database = Arc::new(Mutex::new(Connection::open("database/scheduler.db").unwrap()));
+    let database = Arc::new(Mutex::new(Database::new()));
 
     HttpServer::new(move || {
         App::new()
